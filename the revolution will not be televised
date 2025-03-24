@@ -1,0 +1,74 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
+# File containing sales data
+FILE_NAME = "pharmacy_sales.csv"
+
+def analyze_sales():
+    """Provides enhanced analytical insights on sales."""
+    if not os.path.exists(FILE_NAME) or os.stat(FILE_NAME).st_size == 0:
+        print("\n⚠️ No sales data available!\n")
+        return
+
+    # Load sales data
+    df = pd.read_csv(FILE_NAME)
+
+    # Ensure data types
+    df["Quantity"] = pd.to_numeric(df["Quantity"])
+    df["Total Sales"] = pd.to_numeric(df["Total Sales"])
+    df["Date"] = pd.to_datetime(df["Date"])  # Convert date to datetime
+
+    # Group by drug name
+    drug_sales = df.groupby("Drug Name")["Quantity"].sum()
+
+    # Most and least sold drugs
+    most_sold_drug = drug_sales.idxmax()
+    least_sold_drug = drug_sales.idxmin()
+    most_sold_qty = drug_sales.max()
+    least_sold_qty = drug_sales.min()
+
+    # Total revenue
+    total_revenue = df["Total Sales"].sum()
+
+    # **NEW**: Monthly sales trend
+    monthly_sales = df.groupby(df["Date"].dt.to_period("M"))["Total Sales"].sum()
+
+    print("\n📊 **SALES ANALYSIS** 📊")
+    print(f"💊 Most Sold Drug: {most_sold_drug} ({most_sold_qty} units)")
+    print(f"💊 Least Sold Drug: {least_sold_drug} ({least_sold_qty} units)")
+    print(f"💰 Total Revenue: ${total_revenue:.2f}\n")
+
+    # **NEW**: Profit Analysis
+    if "Cost Price" in df.columns:
+        df["Profit"] = df["Total Sales"] - (df["Cost Price"] * df["Quantity"])
+        total_profit = df["Profit"].sum()
+        print(f"📈 Total Profit: ${total_profit:.2f}")
+
+    # Generate sales visualization
+    generate_sales_chart(drug_sales, monthly_sales)
+
+def generate_sales_chart(drug_sales, monthly_sales):
+    """Generates bar charts for drug sales and monthly trends."""
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Drug sales bar chart
+    drug_sales.sort_values(ascending=False).plot(kind='bar', ax=axes[0], color='skyblue')
+    axes[0].set_title("📊 Drug Sales Analysis")
+    axes[0].set_xlabel("Drug Name")
+    axes[0].set_ylabel("Total Quantity Sold")
+    axes[0].tick_params(axis="x", rotation=45)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Monthly sales trend
+    monthly_sales.plot(kind='line', ax=axes[1], marker="o", color='green', linestyle='-')
+    axes[1].set_title("📅 Monthly Sales Trend")
+    axes[1].set_xlabel("Month")
+    axes[1].set_ylabel("Total Sales ($)")
+    axes[1].grid(axis="y", linestyle="--", alpha=0.7)
+
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    analyze_sales()
